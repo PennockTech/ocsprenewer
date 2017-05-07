@@ -4,6 +4,12 @@
 
 package renew
 
+import (
+	"errors"
+	"fmt"
+	"os"
+)
+
 type Config struct {
 	_ struct{} // we reserve right to re-order, etc, the fields here
 
@@ -26,10 +32,42 @@ type Renewer struct {
 func New(c Config) (*Renewer, error) {
 	r := Renewer{}
 	r.config = c
+
+	if len(r.config.InputPaths) == 0 {
+		return nil, errors.New("no input paths to examine")
+	}
+
+	if 1 <= r.config.TimerT1 && r.config.TimerT1 <= 100 {
+		// Handle percentages on cmdline, instead of ratios
+		r.config.TimerT1 = r.config.TimerT1 / 100.0
+	}
+	if r.config.TimerT1 < 0.1 {
+		return nil, errors.New("timer T1 set too small (10% minimum)")
+	}
+	if r.config.TimerT1 > 0.95 {
+		return nil, errors.New("timer T1 set too large (95% maximum)")
+	}
+
+	if !directoryExists(r.config.OutputDir) {
+		return nil, fmt.Errorf("output directory %q does not exist or is not a directory", r.config.OutputDir)
+	}
+
 	return &r, nil
 }
 
 func (r *Renewer) SetImmediate(i bool) error {
 	r.config.Immediate = i
 	return nil
+}
+
+func directoryExists(d string) bool {
+	fi, err := os.Stat(d)
+	switch {
+	case err != nil:
+		return false
+	case fi.IsDir():
+		return true
+	default:
+		return false
+	}
 }
