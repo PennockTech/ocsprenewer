@@ -5,17 +5,26 @@
 package renew
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 )
 
 const NoOCSPExtension = ".noocsp"
+const MaxCertFileSize = 1024 * 1024 // not processing a cert file larger than 1MB
 
-var ErrNoOCSPFlagfile = errors.New("a .noocsp flag-file prevented action")
-var ErrNoCertsFound = errors.New("no certificate files found in a directory")
+var (
+	ErrNoOCSPFlagfile   = errors.New("a .noocsp flag-file prevented action")
+	ErrNoCertsFound     = errors.New("no certificate files found in a directory")
+	ErrCertFileTooLarge = errors.New("certificate file too large")
+	ErrNotCertificate   = errors.New("no certificate found in file")
+	ErrNoOCSPInCert     = errors.New("certificate lacks OCSP information")
+)
 
 // OneShot does a sweep of all candidates and renews if appropriate.
 // Appropriateness is a combination of "immediate" and timers.
@@ -51,20 +60,11 @@ func (r *Renewer) oneInputPath(p string) error {
 	return fmt.Errorf("not a regular file: %q", p)
 }
 
-func (r *Renewer) oneFilename(p string) error {
-	_, err := os.Stat(p + NoOCSPExtension)
-	if err == nil {
-		return ErrNoOCSPFlagfile
-	}
-
-	return errors.New("UNIMPLEMENTED")
-}
-
 func (r *Renewer) oneInputDirectory(dirname string) error {
 	var candidates []string
-	var errList []error
+	var errCount int
 
-	for _, g := range []string{"*.crt", "*.pem", "*.cert"} {
+	for _, g := range r.certGlobs {
 		m, err := filepath.Glob(filepath.Join(dirname, g))
 		if err != nil {
 			return err
@@ -83,17 +83,82 @@ func (r *Renewer) oneInputDirectory(dirname string) error {
 		if err == nil {
 			continue
 		}
-		err = r.oneFilename(c)
-		if err != nil {
-			errList = append(errList, err)
+		if !r.oneFilenameSuccess(c) {
+			errCount += 1
 		}
 	}
 
-	if errList != nil {
-		return fmt.Errorf("saw %d errors in dir %q: %v", len(errList), dirname, errList)
+	if errCount > 0 {
+		return fmt.Errorf("saw %d errors in dir %q", errCount, dirname)
 	}
 	if tried == 0 {
 		return ErrNoCertsFound // all excluded by NoOCSPExtension is an error for us, I think
 	}
+	return nil
+}
+
+// oneFilenameSuccess should only be used when scanning directories and is
+// allowed to suppress errors on that basis
+func (r *Renewer) oneFilenameSuccess(p string) bool {
+	err := r.oneFilename(p)
+	if err == nil {
+		return true
+	}
+	if r.config.AllowNonOCSPInDir && err == ErrNoOCSPInCert {
+		// TODO: if gain verboseness, log something here
+		return true
+	}
+	log.Printf("failed on %q: %s", p, err)
+	return false
+}
+
+func (r *Renewer) oneFilename(p string) error {
+	fi, err := os.Stat(p + NoOCSPExtension)
+	if err == nil {
+		return ErrNoOCSPFlagfile
+	}
+
+	fi, err = os.Stat(p)
+	if err != nil {
+		return err
+	}
+	if fi.Size() > MaxCertFileSize {
+		return ErrCertFileTooLarge
+	}
+
+	data, err := ioutil.ReadFile(p)
+	if err != nil {
+		return err
+	}
+
+	// We currently _only_ handle PEM input, and we only look at the first cert
+	// in a file, ignoring any chain.  We ignore any PEM headers.
+
+	block, _ := pem.Decode(data)
+	if block == nil || block.Type != "CERTIFICATE" {
+		return ErrNotCertificate
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return err
+	}
+	if len(cert.OCSPServer) < 1 {
+		return ErrNoOCSPInCert
+	}
+
+	for i := range cert.OCSPServer {
+		log.Printf("cert %q OCSP server %q", p, cert.OCSPServer[i])
+	}
+
+	if r.config.Immediate {
+		return r.renewOneCert(cert, p)
+	}
+	if r.timerMatch(cert) {
+		return r.renewOneCert(cert, p)
+	}
+
+	// TODO: this should be verboseness-constrained
+	log.Printf("cert %q (%s) skipping for not within timer", p, certLabel(cert))
 	return nil
 }

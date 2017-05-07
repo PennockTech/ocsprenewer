@@ -8,25 +8,29 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type Config struct {
 	_ struct{} // we reserve right to re-order, etc, the fields here
 
-	HTTPStatus  string  // host:port listen spec
-	Directories bool    // whether InputPaths denotes directories or not
-	OutputDir   string  // where to place generated OCSP staples
-	Extension   string  // filename extension to put on staples
-	OutPEM      bool    // use PEM, not DER, for filenames
-	TimerT1     float64 // how far through staple validity period to start trying to renew
-	Immediate   bool    // renew on start-up, independent of timers
-	InputPaths  []string
+	HTTPStatus        string  // host:port listen spec
+	Directories       bool    // whether InputPaths denotes directories or not
+	OutputDir         string  // where to place generated OCSP staples
+	Extension         string  // filename extension to put on staples
+	OutPEM            bool    // use PEM, not DER, for filenames
+	TimerT1           float64 // how far through staple validity period to start trying to renew
+	Immediate         bool    // renew on start-up, independent of timers
+	AllowNonOCSPInDir bool    // just skip any certs which lack OCSP information
+	CertExtensions    string  // when scanning dirs, files with one of these extensions is assumed to be a cert
+	InputPaths        []string
 }
 
 type Renewer struct {
 	_ struct{}
 
-	config Config
+	config    Config
+	certGlobs []string
 }
 
 func New(c Config) (*Renewer, error) {
@@ -50,6 +54,13 @@ func New(c Config) (*Renewer, error) {
 
 	if !directoryExists(r.config.OutputDir) {
 		return nil, fmt.Errorf("output directory %q does not exist or is not a directory", r.config.OutputDir)
+	}
+
+	for _, e := range strings.Fields(r.config.CertExtensions) {
+		r.certGlobs = append(r.certGlobs, "*"+e)
+	}
+	if r.certGlobs == nil {
+		r.certGlobs = []string{"*.crt"}
 	}
 
 	return &r, nil

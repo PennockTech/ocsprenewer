@@ -35,6 +35,8 @@ func init() {
 	flag.BoolVar(&renewerConfig.OutPEM, "out-pem", false, "create proofs in PEM encoding")
 	flag.StringVar(&renewerConfig.Extension, "extension", ".ocsp", "create proofs in files with this extension")
 	flag.Float64Var(&renewerConfig.TimerT1, "timer-t1", 0.5, "how far through staple validity period to start trying to renew")
+	flag.BoolVar(&renewerConfig.AllowNonOCSPInDir, "allow-nonocsp-in-dir", false, "do not error on certs missing OCSP info")
+	flag.StringVar(&renewerConfig.CertExtensions, "cert-extensions", ".crt .cert .pem", "files in dir-scan with these extensions should be certs")
 }
 
 func main() {
