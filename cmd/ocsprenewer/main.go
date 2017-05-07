@@ -6,7 +6,7 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
 	"os"
 
 	"go.pennock.tech/ocsprenewer/renew"
@@ -19,6 +19,7 @@ import (
 var pflags struct {
 	Persist  bool
 	IfNeeded bool
+	Verbose  bool
 }
 
 var renewerConfig renew.Config
@@ -27,6 +28,8 @@ func init() {
 	flag.BoolVar(&pflags.Persist, "persist", false, "run in a loop, renewing as needed")
 	flag.BoolVar(&pflags.Persist, "p", false, "short form of -persist")
 	flag.BoolVar(&pflags.IfNeeded, "if-needed", false, "if not persisting, only renew those which need renewal per timers")
+	flag.BoolVar(&pflags.Verbose, "verbose", false, "be more verbose")
+	flag.BoolVar(&pflags.Verbose, "v", false, "short form of -verbose")
 
 	flag.BoolVar(&renewerConfig.Immediate, "now", false, "renew immediately in persist mode")
 	flag.StringVar(&renewerConfig.HTTPStatus, "http", "", "start an HTTP status service, on given host:port spec")
@@ -45,7 +48,11 @@ func main() {
 
 	renewer, err := renew.New(renewerConfig)
 	if err != nil {
-		log.Fatalf("configuring OCSP renewer failed: %s", err)
+		fmt.Fprintf(os.Stderr, "configuring OCSP renewer failed: %s", err)
+		os.Exit(1)
+	}
+	if pflags.Verbose {
+		renewer.SetLogLevel(1)
 	}
 
 	if pflags.Persist {
@@ -65,7 +72,7 @@ func main() {
 
 	err = renewer.OneShot()
 	if err != nil {
-		log.Printf("renewing failed: %s", err)
+		renewer.Logf("renewing failed: %s", err)
 		os.Exit(1)
 	}
 }

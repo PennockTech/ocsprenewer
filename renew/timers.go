@@ -6,10 +6,9 @@ package renew
 
 import (
 	"crypto/x509"
-	"log"
 )
 
 func (r *Renewer) timerMatch(cert *x509.Certificate) bool {
-	log.Printf("UNIMPLEMENTED timer match for %q", certLabel(cert))
+	r.Logf("UNIMPLEMENTED timer match for %q", certLabel(cert))
 	return false
 }

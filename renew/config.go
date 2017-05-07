@@ -31,6 +31,7 @@ type Renewer struct {
 
 	config    Config
 	certGlobs []string
+	logLevel  uint
 }
 
 func New(c Config) (*Renewer, error) {
@@ -64,6 +65,10 @@ func New(c Config) (*Renewer, error) {
 	}
 
 	return &r, nil
+}
+
+func (r *Renewer) SetLogLevel(lvl uint) {
+	r.logLevel = lvl
 }
 
 func (r *Renewer) SetImmediate(i bool) error {

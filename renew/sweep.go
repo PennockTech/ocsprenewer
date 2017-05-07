@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -33,7 +32,7 @@ func (r *Renewer) OneShot() error {
 	for i := range r.config.InputPaths {
 		err := r.oneInputPath(r.config.InputPaths[i])
 		if err != nil {
-			log.Printf("failure: %s", err)
+			r.Logf("failure: %s", err)
 			failed += 1
 		}
 	}
@@ -105,10 +104,10 @@ func (r *Renewer) oneFilenameSuccess(p string) bool {
 		return true
 	}
 	if r.config.AllowNonOCSPInDir && err == ErrNoOCSPInCert {
-		// TODO: if gain verboseness, log something here
+		r.LogAtf(1, "skipped %q because of acceptable lack of OCSP information", p)
 		return true
 	}
-	log.Printf("failed on %q: %s", p, err)
+	r.Logf("failed on %q: %s", p, err)
 	return false
 }
 
@@ -148,7 +147,7 @@ func (r *Renewer) oneFilename(p string) error {
 	}
 
 	for i := range cert.OCSPServer {
-		log.Printf("cert %q OCSP server %q", p, cert.OCSPServer[i])
+		r.Logf("cert %q OCSP server %q", p, cert.OCSPServer[i])
 	}
 
 	if r.config.Immediate {
@@ -158,7 +157,6 @@ func (r *Renewer) oneFilename(p string) error {
 		return r.renewOneCert(cert, p)
 	}
 
-	// TODO: this should be verboseness-constrained
-	log.Printf("cert %q (%s) skipping for not within timer", p, certLabel(cert))
+	r.LogAtf(1, "cert %q (%s) skipping for not within timer", p, certLabel(cert))
 	return nil
 }
