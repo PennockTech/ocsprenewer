@@ -44,6 +44,9 @@ type Renewer struct {
 	permitRemoteComms bool
 	permitFileUpdate  bool
 
+	// used in persist/etc modes, to indicate timers are wanted
+	needTimers bool
+
 	// Could probably do with a more efficient and scalable data structure if
 	// there are more than a dozen certs to be renewed, but a map which is
 	// walked to find appropriate times is acceptable for the currently
@@ -109,6 +112,10 @@ func (r *Renewer) SetImmediate(i bool) error {
 func (r *Renewer) SetNotReally(nr bool) {
 	r.permitRemoteComms = !nr
 	r.permitFileUpdate = !nr
+}
+
+func (r *Renewer) NeedTimers() bool {
+	return r.needTimers
 }
 
 func directoryExists(d string) bool {

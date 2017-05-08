@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const NoOCSPExtension = ".noocsp"
@@ -23,6 +24,12 @@ var (
 	ErrCertFileTooLarge = errors.New("certificate file too large")
 	ErrNotCertificate   = errors.New("no certificate found in file")
 	ErrNoOCSPInCert     = errors.New("certificate lacks OCSP information")
+)
+
+var (
+	ExcludeExtensions = []string{
+		".issuer.crt", // found in Let's Encrypt Lego dirs
+	}
 )
 
 // OneShot does a sweep of all candidates and renews if appropriate.
@@ -77,11 +84,20 @@ func (r *Renewer) oneInputDirectory(dirname string) error {
 	}
 
 	tried := 0
+CandidateLoop:
 	for _, c := range candidates {
 		_, err := os.Stat(c + NoOCSPExtension)
 		if err == nil {
+			r.LogAtf(1, "skipping %q because %q exists", c, c+NoOCSPExtension)
 			continue
 		}
+		for _, excludeExt := range ExcludeExtensions {
+			if strings.HasSuffix(c, excludeExt) {
+				r.LogAtf(1, "skipping %q because ends %q", c, excludeExt)
+				continue CandidateLoop
+			}
+		}
+		tried += 1
 		if !r.oneFilenameSuccess(c) {
 			errCount += 1
 		}

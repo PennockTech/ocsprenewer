@@ -29,6 +29,9 @@ var (
 	ErrCertAlreadyExpired = errors.New("refuse to fetch OCSP staple for expired cert")
 	ErrNoIssuer           = errors.New("unable to find an issuer to validate any OCSP response")
 	ErrHTTPFailure        = errors.New("HTTP failure retrieving OCSP staple")
+	ErrOCSPProblem        = errors.New("unexpected OCSP problem")
+	ErrTryLater           = errors.New("OCSP said tryLater")
+	// Also types: RevokedError UnknownAtCAError
 )
 
 // We're responsible both for the renewal over the wire and for updating any
@@ -55,11 +58,8 @@ func (cr *CertRenewal) renewOneCertNow(rawRestOfChain []byte) error {
 
 	cr.LogAtf(1, "issuer for %q is %q", certLabel(cr.cert), certLabel(cr.issuer))
 
-	// FIXME: figure out where we'd write to local disk and ensure we can,
-	// _before_ we speak remotely.  Unless that's inhibited.
-
 	if !cr.Renewer.permitRemoteComms {
-		cr.Logf("remote OCSP renewal inhibited, blocking renew of %q", certLabel(cr.cert))
+		cr.Logf("remote OCSP renewal inhibited, blocking renew of %q", cr.certLabel())
 		return nil
 	}
 
@@ -70,12 +70,40 @@ func (cr *CertRenewal) renewOneCertNow(rawRestOfChain []byte) error {
 
 	staple, rawStaple, err := cr.fetchOCSPviaHTTP(req)
 	if err != nil {
+		if re, ok := err.(ocsp.ResponseError); ok {
+			switch re.Status {
+			case ocsp.Success:
+				cr.Logf("%q OCSP: got an error which claims success, We Are Now Confused: %s", cr.certLabel(), re)
+			case ocsp.TryLater:
+				cr.setRetryTimersFromStaple(nil)
+			default:
+				// do nothing, let it be handled by the caller
+			}
+		}
 		return err
 	}
+	if staple == nil {
+		cr.Logf("BUG: have nil OCSP staple but fetch returned success for %q", cr.certLabel())
+		return ErrOCSPProblem
+	}
 
-	// FIXME: validate have OK response, examine timers, set timers for next update
+	switch staple.Status {
+	case ocsp.Good:
+		cr.Logf("%q OCSP: status=%s sn=%v producedAt=(%s) thisUpdate=(%s) nextUpdate=(%s)",
+			cr.certLabel(), staple.Status, staple.SerialNumber, staple.ProducedAt, staple.ThisUpdate, staple.NextUpdate)
+		// no return
+	case ocsp.Revoked:
+		return RevokedError{Cert: cr.cert, RevokedAt: staple.RevokedAt}
+	case ocsp.Unknown:
+		return UnknownAtCAError{Cert: cr.cert, URL: cr.cert.OCSPServer[0]}
+	default:
+		cr.Logf("%q OCSP: unhandled staple status %d", cr.certLabel(), staple.Status)
+		return ErrOCSPProblem
+	}
 
-	return cr.writeStaple(staple, rawStaple)
+	cr.setRetryTimersFromStaple(staple)
+
+	return cr.writeStaple(staple, rawStaple) // handles permit check itself
 }
 
 func (cr *CertRenewal) tryIssuerInRest(rest []byte) *x509.Certificate {
@@ -103,6 +131,7 @@ func (cr *CertRenewal) findIssuer() *x509.Certificate {
 
 // fetchOCSPviaHTTP fetches the OCSP response.
 // TODO: should we iterate over OCSP URLs?  Does anything actually need that?
+//       if so, also consider construction of UnknownAtCAError object elsewhere
 func (cr *CertRenewal) fetchOCSPviaHTTP(ocspReq []byte) (*ocsp.Response, []byte, error) {
 	req, err := http.NewRequest(
 		http.MethodPost,

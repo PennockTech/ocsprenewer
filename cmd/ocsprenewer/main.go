@@ -6,8 +6,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
+
+	// AVOID IMPORTING "os" HERE: use util.go for that.
 
 	"go.pennock.tech/ocsprenewer/renew"
 )
@@ -55,8 +55,8 @@ func main() {
 
 	renewer, err := renew.New(renewerConfig)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "configuring OCSP renewer failed: %s", err)
-		os.Exit(1)
+		stderr("configuring OCSP renewer failed: %s", err)
+		exit(1)
 	}
 	if pflags.Verbose {
 		renewer.SetLogLevel(1)
@@ -65,13 +65,18 @@ func main() {
 		renewer.SetNotReally(true)
 	}
 
+	if err := renewer.BasicChecks(); err != nil {
+		renewer.Logf("initial startup checks failed: %s", err)
+		exit(1)
+	}
+
 	if pflags.Persist {
 		// Should not return until exiting
 		ok := renewer.Start()
 		if ok {
-			os.Exit(0)
+			exit(0)
 		}
-		os.Exit(1)
+		exit(1)
 	}
 
 	if pflags.IfNeeded {
@@ -83,6 +88,6 @@ func main() {
 	err = renewer.OneShot()
 	if err != nil {
 		renewer.Logf("renewing failed: %s", err)
-		os.Exit(1)
+		exit(1)
 	}
 }

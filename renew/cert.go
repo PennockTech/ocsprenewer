@@ -102,23 +102,42 @@ func (cr *CertRenewal) writeStaple(staple *ocsp.Response, rawStaple []byte) erro
 	if staple == nil {
 		return ErrEmptyStaple
 	}
+	if !cr.Renewer.permitFileUpdate {
+		cr.Logf("%q: file update inhibited, skipping write %d bytes to %q", cr.certLabel(), len(rawStaple), cr.staplePath)
+		return nil
+	}
+
 	fh, err := ioutil.TempFile(filepath.Dir(cr.staplePath), "newstaple")
 	if err != nil {
 		return err
 	}
 
-	if _, err := fh.Write(rawStaple); err != nil {
+	wrote, err := fh.Write(rawStaple)
+	if err != nil {
 		return err
+	} else if wrote != len(rawStaple) {
+		_ = os.Remove(fh.Name())
+		return fmt.Errorf("%q: writing %q, only wrote %d/%d bytes", cr.certLabel(), fh.Name(), wrote, len(rawStaple))
 	}
 	if err := fh.Close(); err != nil {
+		_ = os.Remove(fh.Name())
 		return err
 	}
 
 	fi, err := os.Stat(cr.staplePath)
 	if err == nil {
 		if err := os.Chmod(fh.Name(), fi.Mode()); err != nil {
+			_ = os.Remove(fh.Name())
 			return err
 		}
 	}
-	return os.Rename(fh.Name(), cr.staplePath)
+	err = os.Rename(fh.Name(), cr.staplePath)
+	if err == nil {
+		cr.Logf("%q: wrote %q (%d bytes)", cr.certLabel(), cr.staplePath, wrote)
+		return nil
+	}
+
+	_ = os.Remove(fh.Name())
+	cr.Logf("%q: FAIL rename to %q from %q: %s", cr.certLabel(), cr.staplePath, fh.Name(), err)
+	return err
 }
