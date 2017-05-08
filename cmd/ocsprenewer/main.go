@@ -12,6 +12,10 @@ import (
 	"go.pennock.tech/ocsprenewer/renew"
 )
 
+const (
+	HTTPUserAgent = "ocsprenewer/0.1 (Pennock Tech OCSP Renewer)"
+)
+
 // We don't use "daemon" because we don't auto-fork into background, but
 // instead make ourselves easy to supervise.  If there are complaints that
 // daemonization is too hard, we can consider log-file redirection and
@@ -47,6 +51,7 @@ func init() {
 func main() {
 	flag.Parse()
 	renewerConfig.InputPaths = flag.Args()
+	renewerConfig.HTTPUserAgent = HTTPUserAgent
 
 	renewer, err := renew.New(renewerConfig)
 	if err != nil {

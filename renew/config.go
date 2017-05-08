@@ -7,6 +7,7 @@ package renew
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -23,11 +24,15 @@ type Config struct {
 	Immediate         bool    // renew on start-up, independent of timers
 	AllowNonOCSPInDir bool    // just skip any certs which lack OCSP information
 	CertExtensions    string  // when scanning dirs, files with one of these extensions is assumed to be a cert
+	HTTPUserAgent     string  // HTTP User-Agent to send
 	InputPaths        []string
 }
 
 type Renewer struct {
 	_ struct{}
+
+	// Modify HTTPClient if your application requires that; it defaults to http.DefaultClient
+	HTTPClient *http.Client
 
 	config    Config
 	certGlobs []string
@@ -56,6 +61,11 @@ func New(c Config) (*Renewer, error) {
 		nextRenew:         make(map[string]time.Time),
 		permitRemoteComms: true,
 		permitFileUpdate:  true,
+		HTTPClient:        http.DefaultClient,
+	}
+
+	if r.config.HTTPUserAgent == "" {
+		return nil, errors.New("you must take accountability with an HTTP User-Agent")
 	}
 
 	if len(r.config.InputPaths) == 0 {
@@ -111,4 +121,9 @@ func directoryExists(d string) bool {
 	default:
 		return false
 	}
+}
+
+func (r *Renewer) httpDo(req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", r.config.HTTPUserAgent)
+	return r.HTTPClient.Do(req)
 }

@@ -5,10 +5,12 @@
 package renew
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"fmt"
+	"io/ioutil"
+	"net/http"
 	"time"
 
 	"golang.org/x/crypto/ocsp"
@@ -19,9 +21,14 @@ import (
 // that a sane approach is based on some kind of renewal model, such as DHCP's
 // T1/T2 system.
 
+const (
+	MIMETypeOCSPRequest = "application/ocsp-request"
+)
+
 var (
 	ErrCertAlreadyExpired = errors.New("refuse to fetch OCSP staple for expired cert")
 	ErrNoIssuer           = errors.New("unable to find an issuer to validate any OCSP response")
+	ErrHTTPFailure        = errors.New("HTTP failure retrieving OCSP staple")
 )
 
 // We're responsible both for the renewal over the wire and for updating any
@@ -61,9 +68,14 @@ func (cr *CertRenewal) renewOneCertNow(rawRestOfChain []byte) error {
 		return err
 	}
 
-	return fmt.Errorf("UNIMPLEMENTED FOR %q with REQ %v", cr.certLabel(), req)
+	staple, rawStaple, err := cr.fetchOCSPviaHTTP(req)
+	if err != nil {
+		return err
+	}
 
-	// FIXME: update on local disk
+	// FIXME: validate have OK response, examine timers, set timers for next update
+
+	return cr.writeStaple(staple, rawStaple)
 }
 
 func (cr *CertRenewal) tryIssuerInRest(rest []byte) *x509.Certificate {
@@ -87,4 +99,35 @@ func (cr *CertRenewal) tryIssuerInRest(rest []byte) *x509.Certificate {
 func (cr *CertRenewal) findIssuer() *x509.Certificate {
 	cr.Logf("UNIMPLEMENTED findIssuer(%q, %q)", cr.certLabel(), cr.certPath)
 	return nil
+}
+
+// fetchOCSPviaHTTP fetches the OCSP response.
+// TODO: should we iterate over OCSP URLs?  Does anything actually need that?
+func (cr *CertRenewal) fetchOCSPviaHTTP(ocspReq []byte) (*ocsp.Response, []byte, error) {
+	req, err := http.NewRequest(
+		http.MethodPost,
+		cr.cert.OCSPServer[0],
+		bytes.NewReader(ocspReq))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resp, err := cr.httpDo(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	raw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		cr.Logf("HTTP %s response from %q", resp.Status, cr.cert.OCSPServer[0])
+		return nil, raw, ErrHTTPFailure
+	}
+
+	r, e := ocsp.ParseResponse(raw, cr.issuer)
+	return r, raw, e
 }

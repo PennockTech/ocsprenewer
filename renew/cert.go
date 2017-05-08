@@ -18,6 +18,7 @@ import (
 
 var (
 	ErrEmptyFilename = errors.New("derived an empty filename")
+	ErrEmptyStaple   = errors.New("staple is empty")
 )
 
 type CertRenewal struct {
@@ -95,4 +96,29 @@ func (cr *CertRenewal) parseExistingStaple() error {
 	var err error
 	cr.oldStaple, err = ocsp.ParseResponse(cr.oldStapleRaw, cr.issuer)
 	return err
+}
+
+func (cr *CertRenewal) writeStaple(staple *ocsp.Response, rawStaple []byte) error {
+	if staple == nil {
+		return ErrEmptyStaple
+	}
+	fh, err := ioutil.TempFile(filepath.Dir(cr.staplePath), "newstaple")
+	if err != nil {
+		return err
+	}
+
+	if _, err := fh.Write(rawStaple); err != nil {
+		return err
+	}
+	if err := fh.Close(); err != nil {
+		return err
+	}
+
+	fi, err := os.Stat(cr.staplePath)
+	if err == nil {
+		if err := os.Chmod(fh.Name(), fi.Mode()); err != nil {
+			return err
+		}
+	}
+	return os.Rename(fh.Name(), cr.staplePath)
 }
