@@ -117,7 +117,9 @@ func (r *Renewer) oneFilename(p string) error {
 		return ErrNoOCSPFlagfile
 	}
 
-	fi, err = os.Stat(p)
+	cr := CertRenewal{Renewer: r, certPath: p}
+
+	fi, err = os.Stat(cr.certPath)
 	if err != nil {
 		return err
 	}
@@ -125,7 +127,7 @@ func (r *Renewer) oneFilename(p string) error {
 		return ErrCertFileTooLarge
 	}
 
-	data, err := ioutil.ReadFile(p)
+	data, err := ioutil.ReadFile(cr.certPath)
 	if err != nil {
 		return err
 	}
@@ -133,7 +135,7 @@ func (r *Renewer) oneFilename(p string) error {
 	// We currently _only_ handle PEM input, and we only look at the first cert
 	// in a file, ignoring any chain.  We ignore any PEM headers.
 
-	block, _ := pem.Decode(data)
+	block, rawRestOfChain := pem.Decode(data)
 	if block == nil || block.Type != "CERTIFICATE" {
 		return ErrNotCertificate
 	}
@@ -150,13 +152,18 @@ func (r *Renewer) oneFilename(p string) error {
 		r.Logf("cert %q OCSP server %q", p, cert.OCSPServer[i])
 	}
 
-	if r.config.Immediate {
-		return r.renewOneCert(cert, p)
-	}
-	if r.timerMatch(cert) {
-		return r.renewOneCert(cert, p)
+	cr.cert = cert
+	if err := cr.findStaple(); err != nil {
+		return err
 	}
 
-	r.LogAtf(1, "cert %q (%s) skipping for not within timer", p, certLabel(cert))
+	if r.config.Immediate {
+		return cr.renewOneCertNow(rawRestOfChain)
+	}
+	if cr.timerMatch() {
+		return cr.renewOneCertNow(rawRestOfChain)
+	}
+
+	r.LogAtf(1, "cert %q (%q) skipping for not within OCSP timer", cr.certPath, cr.certLabel())
 	return nil
 }
