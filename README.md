@@ -40,3 +40,7 @@ TBD, probably `go get go.pennock.tech/ocsprenewer/...`
 
 Probably lots.
 
+### Unimplemented
+
+Would be good to have a notify-watch on a directory to automatically pick up
+new certs to watch over.

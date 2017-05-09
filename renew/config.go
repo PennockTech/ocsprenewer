@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -58,7 +59,9 @@ type Renewer struct {
 	// If someone wants to renew thousands of certs with this tool, we can
 	// revisit this at that time.  We'd also need to renew concurrently, with
 	// concurrency limits, instead of one-at-a-time as we are currently.
-	nextRenew map[string]time.Time
+	renewMutex        sync.Mutex
+	nextRenew         map[string]time.Time
+	earliestNextRenew time.Time
 }
 
 func New(c Config) (*Renewer, error) {
