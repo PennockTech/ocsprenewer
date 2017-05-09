@@ -1,6 +1,8 @@
 oscprenewer
 ===========
 
+*WARNING: this is an early-alpha project with a paucity of tests*
+
 The <abbr title='Online Certificate Status Protocol'>OCSP</abbr> Renewer
 renews OCSP Staples on local disk.
 
@@ -33,8 +35,9 @@ written with that as a key usage model.
 
 ### Installation
 
-TBD, probably `go get go.pennock.tech/ocsprenewer/...`
-
+```sh
+go get go.pennock.tech/ocsprenewer/cmd/ocsprenewer
+```
 
 ### Issues
 
