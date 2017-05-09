@@ -6,13 +6,29 @@ package renew
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"time"
 
 	"golang.org/x/crypto/ocsp"
 )
 
-const RetryOnTryLater = 30 * time.Minute
+// Retry times always have jitter adjustments to avoid phase lock
+// synchronization of requests.
+const (
+	// If we get told TryLater by an OCSP server, how long that is
+	RetryOnTryLater = 30 * time.Minute
+
+	// If an OCSP staple is missing any timers, how often we'll retry instead
+	RetryMissingTimers = 24 * time.Hour
+
+	// If a newly issued staple appear to have already expired, how long until
+	// we try again
+	RetryOnAlreadyExpired = 15 * time.Minute
+
+	// If we're after T1 timer, how often to retry
+	RetryAfterT1 = time.Hour
+)
 
 func (cr *CertRenewal) timerMatch() bool {
 	raw, err := ioutil.ReadFile(cr.staplePath)
@@ -45,6 +61,8 @@ func (cr *CertRenewal) timerMatch() bool {
 	// Let's say we want ((nextUpdate - producedAt) * TimerT1) + producedAt as
 	// the time to start retrying then.  It might be that we want thisUpdate
 	// instead ... experience will tell.
+	//
+	// If changing this, also check setRetryTimersFromStaple()
 	base := resp.ProducedAt
 	expire := resp.NextUpdate
 	now := time.Now()
@@ -64,7 +82,12 @@ func (cr *CertRenewal) timerMatch() bool {
 		return true
 	}
 
-	retryAfter := base.Add(time.Duration(float64(expire.Sub(base)) * t1ratio))
+	// NB: retryJitter can have us trying before T1, so this relies upon us not
+	// doing this timer check when doing a "check because told to check at this
+	// time".  We can reconsider and perhaps use "T+n" instead of "T±n" for
+	// this jitter.
+	retryAfter := base.Add(retryJitter(time.Duration(float64(expire.Sub(base)) * t1ratio)))
+
 	if now.After(retryAfter) {
 		cr.CertLogf("timer T1 expired at %s, triggering retry %vx[%s, %s]", retryAfter, t1ratio, base, expire)
 		return true
@@ -76,6 +99,8 @@ func (cr *CertRenewal) timerMatch() bool {
 	return false
 }
 
+// not happy at the duplication of knowledge from timerMatch() but I value the
+// precise log-messages therein, so am accepting it.
 func (cr *CertRenewal) setRetryTimersFromStaple(staple *ocsp.Response) {
 	if cr == nil {
 		panic("nil *CertRenewal")
@@ -84,15 +109,43 @@ func (cr *CertRenewal) setRetryTimersFromStaple(staple *ocsp.Response) {
 		return
 	}
 
+	atOffset := func(offset time.Duration) {
+		cr.RegisterFutureCheck(cr.certPath, time.Now().Add(retryJitter(offset)))
+	}
+
 	if staple == nil {
-		cr.CertLogf("UNIMPLEMENTED: add %v delay for TryLater response", RetryOnTryLater)
+		atOffset(RetryOnTryLater)
 		return
 	}
 
-	cr.CertLogf("UNIMPLEMENTED: calculate retry times")
+	// See equivalent roughly matching logic in timerMatch
+	base := staple.ProducedAt
+	expire := staple.NextUpdate
+	now := time.Now()
+	t1ratio := cr.Renewer.config.TimerT1
+	if expire.IsZero() {
+		atOffset(RetryMissingTimers)
+		return
+	}
+	if now.After(expire) {
+		atOffset(RetryOnAlreadyExpired)
+	}
+	if base.IsZero() {
+		atOffset(RetryMissingTimers)
+	}
+
+	retryAfter := base.Add(retryJitter(time.Duration(float64(expire.Sub(base)) * t1ratio)))
+	if now.After(retryAfter) {
+		atOffset(RetryAfterT1)
+	}
+
+	cr.RegisterFutureCheck(cr.certPath, retryAfter)
 }
 
 func (r *Renewer) RegisterFutureCheck(path string, checkTime time.Time) {
+	if !r.NeedTimers() {
+		return
+	}
 	r.renewMutex.Lock()
 	defer r.renewMutex.Unlock()
 	existing, ok := r.nextRenew[path]
@@ -106,4 +159,11 @@ func (r *Renewer) RegisterFutureCheck(path string, checkTime time.Time) {
 	if r.earliestNextRenew.After(checkTime) {
 		r.earliestNextRenew = checkTime
 	}
+}
+
+func retryJitter(base time.Duration) time.Duration {
+	b := float64(base)
+	// 10% +/-
+	offset := rand.Float64()*0.2 - 0.1
+	return time.Duration(b + offset)
 }

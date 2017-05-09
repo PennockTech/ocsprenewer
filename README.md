@@ -40,6 +40,8 @@ TBD, probably `go get go.pennock.tech/ocsprenewer/...`
 
 Probably lots.
 
+Missing almost all tests.  I got something working, needs some TLC.
+
 ### Unimplemented
 
 Would be good to have a notify-watch on a directory to automatically pick up
