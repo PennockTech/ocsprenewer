@@ -39,7 +39,7 @@ func init() {
 	flag.BoolVar(&pflags.NotReally, "n", false, "short form of -not-really")
 
 	flag.BoolVar(&renewerConfig.Immediate, "now", false, "renew immediately in persist mode")
-	flag.StringVar(&renewerConfig.HTTPStatus, "http", "", "start an HTTP status service, on given host:port spec")
+	//TODO: flag.StringVar(&renewerConfig.HTTPStatus, "http", "", "start an HTTP status service, on given host:port spec")
 	flag.BoolVar(&renewerConfig.Directories, "dirs", false, "arguments are directories containing certs")
 	flag.StringVar(&renewerConfig.OutputDir, "out-dir", "./", "place files into given directory")
 	flag.StringVar(&renewerConfig.Extension, "extension", ".ocsp", "create proofs in files with this extension")

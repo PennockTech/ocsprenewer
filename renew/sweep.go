@@ -35,9 +35,13 @@ var (
 // OneShot does a sweep of all candidates and renews if appropriate.
 // Appropriateness is a combination of "immediate" and timers.
 func (r *Renewer) OneShot() error {
+	return r.oneShotOverPaths(r.config.InputPaths)
+}
+
+func (r *Renewer) oneShotOverPaths(consider []string) error {
 	failed := 0
-	for i := range r.config.InputPaths {
-		err := r.oneInputPath(r.config.InputPaths[i])
+	for i := range consider {
+		err := r.oneInputPath(consider[i])
 		if err != nil {
 			r.Logf("failure: %s", err)
 			failed += 1

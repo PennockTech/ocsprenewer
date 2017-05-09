@@ -28,6 +28,9 @@ const (
 
 	// If we're after T1 timer, how often to retry
 	RetryAfterT1 = time.Hour
+
+	// How long we wait between renew checks if we somehow failed to find any timers
+	SweepIntervalTimerless = 24 * time.Hour
 )
 
 func (cr *CertRenewal) timerMatch() bool {
@@ -156,7 +159,7 @@ func (r *Renewer) RegisterFutureCheck(path string, checkTime time.Time) {
 
 	r.nextRenew[path] = checkTime
 	r.Logf("RegisterFutureCheck(%q): at %s", path, checkTime)
-	if r.earliestNextRenew.After(checkTime) {
+	if r.earliestNextRenew.IsZero() || r.earliestNextRenew.After(checkTime) {
 		r.earliestNextRenew = checkTime
 	}
 }
