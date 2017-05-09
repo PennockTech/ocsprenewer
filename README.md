@@ -55,3 +55,6 @@ same file as the end-entity certificate.  My primary use-case is Let's Encrypt
 (with certs issued through <https://github.com/xenolf/lego>) so bundling is
 the norm for me.  If you need this issuer found and get the `UNIMPLEMENTED`
 complaint, file an issue with details.
+
+Should have a periodic sweep of all files, to catch unexpected or
+dropped-by-bug things.

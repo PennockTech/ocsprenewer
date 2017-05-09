@@ -75,11 +75,16 @@ func (cr *CertRenewal) renewOneCertNow(rawRestOfChain []byte) error {
 			case ocsp.Success:
 				cr.CertLogf("OCSP: got an error which claims success, We Are Now Confused: %s", re)
 			case ocsp.TryLater:
-				cr.setRetryTimersFromStaple(nil)
+				cr.CertLogf("OCSP: explicitly told to try later in response")
 			default:
-				// do nothing, let it be handled by the caller
+				// Do nothing, let it be handled by the caller.
+				// Could isolate malformedRequest and use level-logging
+				// to report as a critical lack of support?  Blocked on
+				// future improved logging.
 			}
 		}
+		// We _always_ set retry timers, rather than forget about the cert
+		cr.setRetryTimersFromStaple(nil)
 		return err
 	}
 	if staple == nil {
