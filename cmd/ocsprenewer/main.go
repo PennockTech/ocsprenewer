@@ -25,6 +25,7 @@ var pflags struct {
 	IfNeeded  bool
 	Verbose   bool
 	NotReally bool
+	Version   bool
 }
 
 var renewerConfig renew.Config
@@ -37,6 +38,7 @@ func init() {
 	flag.BoolVar(&pflags.Verbose, "v", false, "short form of -verbose")
 	flag.BoolVar(&pflags.NotReally, "not-really", false, "don't talk to remote servers, do everything else")
 	flag.BoolVar(&pflags.NotReally, "n", false, "short form of -not-really")
+	flag.BoolVar(&pflags.Version, "version", false, "show version and exit")
 
 	flag.BoolVar(&renewerConfig.Immediate, "now", false, "renew immediately in persist mode")
 	//TODO: flag.StringVar(&renewerConfig.HTTPStatus, "http", "", "start an HTTP status service, on given host:port spec")
@@ -50,12 +52,18 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	if pflags.Version {
+		stdout("%s version %s\n", ProjectName, Version)
+		exit(0)
+	}
+
 	renewerConfig.InputPaths = flag.Args()
 	renewerConfig.HTTPUserAgent = HTTPUserAgent
 
 	renewer, err := renew.New(renewerConfig)
 	if err != nil {
-		stderr("configuring OCSP renewer failed: %s", err)
+		stderr("configuring OCSP renewer failed: %s\n", err)
 		exit(1)
 	}
 	if pflags.Verbose {

@@ -24,3 +24,7 @@ func exit(val int) {
 func stderr(spec string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, spec, args...)
 }
+
+func stdout(spec string, args ...interface{}) {
+	fmt.Fprintf(os.Stdout, spec, args...)
+}
