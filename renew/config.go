@@ -47,6 +47,9 @@ type Renewer struct {
 	// used in persist/etc modes, to indicate timers are wanted
 	needTimers bool
 
+	// used in logging to have an id per action to disambiguate; manipulate with atomics
+	seqActionID uint64
+
 	// Could probably do with a more efficient and scalable data structure if
 	// there are more than a dozen certs to be renewed, but a map which is
 	// walked to find appropriate times is acceptable for the currently
@@ -65,6 +68,7 @@ func New(c Config) (*Renewer, error) {
 		permitRemoteComms: true,
 		permitFileUpdate:  true,
 		HTTPClient:        http.DefaultClient,
+		seqActionID:       seedActionID(),
 	}
 
 	if r.config.HTTPUserAgent == "" {

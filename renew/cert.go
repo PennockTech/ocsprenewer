@@ -24,6 +24,9 @@ var (
 type CertRenewal struct {
 	*Renewer
 
+	ActionID    uint64
+	actionIDStr string
+
 	certPath   string
 	staplePath string
 
@@ -78,13 +81,13 @@ func (cr *CertRenewal) findStaple() error {
 	cr.oldStapleRaw, err = ioutil.ReadFile(cr.staplePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			cr.LogAtf(1, "%q: no existing staple at %q", cr.certLabel(), cr.staplePath)
+			cr.CertLogAtf(1, "no existing staple at %q", cr.staplePath)
 			return nil
 		}
 		return err
 	}
 
-	cr.LogAtf(1, "%q: found existing staple at %q", cr.certLabel(), cr.staplePath)
+	cr.CertLogAtf(1, "found existing staple at %q", cr.staplePath)
 
 	return cr.parseExistingStaple()
 }
@@ -103,7 +106,7 @@ func (cr *CertRenewal) writeStaple(staple *ocsp.Response, rawStaple []byte) erro
 		return ErrEmptyStaple
 	}
 	if !cr.Renewer.permitFileUpdate {
-		cr.Logf("%q: file update inhibited, skipping write %d bytes to %q", cr.certLabel(), len(rawStaple), cr.staplePath)
+		cr.CertLogf("file update inhibited, skipping write %d bytes to %q", len(rawStaple), cr.staplePath)
 		return nil
 	}
 
@@ -133,11 +136,11 @@ func (cr *CertRenewal) writeStaple(staple *ocsp.Response, rawStaple []byte) erro
 	}
 	err = os.Rename(fh.Name(), cr.staplePath)
 	if err == nil {
-		cr.Logf("%q: wrote %q (%d bytes)", cr.certLabel(), cr.staplePath, wrote)
+		cr.CertLogf("wrote %q (%d bytes)", cr.staplePath, wrote)
 		return nil
 	}
 
 	_ = os.Remove(fh.Name())
-	cr.Logf("%q: FAIL rename to %q from %q: %s", cr.certLabel(), cr.staplePath, fh.Name(), err)
+	cr.CertLogf("FAIL rename to %q from %q: %s", cr.staplePath, fh.Name(), err)
 	return err
 }

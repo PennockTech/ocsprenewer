@@ -56,10 +56,10 @@ func (cr *CertRenewal) renewOneCertNow(rawRestOfChain []byte) error {
 		return ErrNoIssuer
 	}
 
-	cr.LogAtf(1, "issuer for %q is %q", certLabel(cr.cert), certLabel(cr.issuer))
+	cr.CertLogAtf(1, "issuer is %q", certLabel(cr.issuer))
 
 	if !cr.Renewer.permitRemoteComms {
-		cr.Logf("remote OCSP renewal inhibited, blocking renew of %q", cr.certLabel())
+		cr.CertLogf("remote OCSP renewal inhibited, blocking renew")
 		return nil
 	}
 
@@ -73,7 +73,7 @@ func (cr *CertRenewal) renewOneCertNow(rawRestOfChain []byte) error {
 		if re, ok := err.(ocsp.ResponseError); ok {
 			switch re.Status {
 			case ocsp.Success:
-				cr.Logf("%q OCSP: got an error which claims success, We Are Now Confused: %s", cr.certLabel(), re)
+				cr.CertLogf("OCSP: got an error which claims success, We Are Now Confused: %s", re)
 			case ocsp.TryLater:
 				cr.setRetryTimersFromStaple(nil)
 			default:
@@ -83,21 +83,21 @@ func (cr *CertRenewal) renewOneCertNow(rawRestOfChain []byte) error {
 		return err
 	}
 	if staple == nil {
-		cr.Logf("BUG: have nil OCSP staple but fetch returned success for %q", cr.certLabel())
+		cr.CertLogf("BUG: have nil OCSP staple but fetch returned success")
 		return ErrOCSPProblem
 	}
 
 	switch staple.Status {
 	case ocsp.Good:
-		cr.Logf("%q OCSP: status=%s sn=%v producedAt=(%s) thisUpdate=(%s) nextUpdate=(%s)",
-			cr.certLabel(), staple.Status, staple.SerialNumber, staple.ProducedAt, staple.ThisUpdate, staple.NextUpdate)
+		cr.CertLogf("OCSP: status=%v sn=%v producedAt=(%s) thisUpdate=(%s) nextUpdate=(%s)",
+			staple.Status, staple.SerialNumber, staple.ProducedAt, staple.ThisUpdate, staple.NextUpdate)
 		// no return
 	case ocsp.Revoked:
 		return RevokedError{Cert: cr.cert, RevokedAt: staple.RevokedAt}
 	case ocsp.Unknown:
 		return UnknownAtCAError{Cert: cr.cert, URL: cr.cert.OCSPServer[0]}
 	default:
-		cr.Logf("%q OCSP: unhandled staple status %d", cr.certLabel(), staple.Status)
+		cr.CertLogf("OCSP: unhandled staple status %v", staple.Status)
 		return ErrOCSPProblem
 	}
 
@@ -125,7 +125,7 @@ func (cr *CertRenewal) tryIssuerInRest(rest []byte) *x509.Certificate {
 // move this out to something which manages system pools, any CAs specified in
 // cmdline flags, etc
 func (cr *CertRenewal) findIssuer() *x509.Certificate {
-	cr.Logf("UNIMPLEMENTED findIssuer(%q, %q)", cr.certLabel(), cr.certPath)
+	cr.CertLogf("UNIMPLEMENTED findIssuer() path %q", cr.certPath)
 	return nil
 }
 

@@ -14,7 +14,7 @@ import (
 const RetryOnTryLater = 30 * time.Minute
 
 func (cr *CertRenewal) timerMatch() bool {
-	cr.Logf("UNIMPLEMENTED timer match for %q", cr.certLabel())
+	cr.CertLogf("UNIMPLEMENTED timer match")
 	// find the staple, populate path if needed, extract times from it, etc
 	return false
 }
@@ -28,9 +28,9 @@ func (cr *CertRenewal) setRetryTimersFromStaple(staple *ocsp.Response) {
 	}
 
 	if staple == nil {
-		cr.Logf("UNIMPLEMENTED: %q: add %v delay for TryLater response", cr.certLabel(), RetryOnTryLater)
+		cr.CertLogf("UNIMPLEMENTED: add %v delay for TryLater response", RetryOnTryLater)
 		return
 	}
 
-	cr.Logf("UNIMPLEMENTED: %q: calculate retry times", cr.certLabel())
+	cr.CertLogf("UNIMPLEMENTED: calculate retry times")
 }

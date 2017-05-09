@@ -133,7 +133,7 @@ func (r *Renewer) oneFilename(p string) error {
 		return ErrNoOCSPFlagfile
 	}
 
-	cr := CertRenewal{Renewer: r, certPath: p}
+	cr := CertRenewal{Renewer: r, certPath: p, ActionID: r.nextActionID()}
 
 	fi, err = os.Stat(cr.certPath)
 	if err != nil {
@@ -164,11 +164,12 @@ func (r *Renewer) oneFilename(p string) error {
 		return ErrNoOCSPInCert
 	}
 
+	cr.cert = cert
+
 	for i := range cert.OCSPServer {
-		r.Logf("cert %q OCSP server %q", p, cert.OCSPServer[i])
+		cr.CertLogf("path %q OCSP server %q", p, cert.OCSPServer[i])
 	}
 
-	cr.cert = cert
 	if err := cr.findStaple(); err != nil {
 		return err
 	}
@@ -180,6 +181,6 @@ func (r *Renewer) oneFilename(p string) error {
 		return cr.renewOneCertNow(rawRestOfChain)
 	}
 
-	r.LogAtf(1, "cert %q (%q) skipping for not within OCSP timer", cr.certPath, cr.certLabel())
+	cr.CertLogAtf(1, "path %q skipping for not within OCSP timer", cr.certPath)
 	return nil
 }
