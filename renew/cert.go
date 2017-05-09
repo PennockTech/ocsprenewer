@@ -97,7 +97,7 @@ func (cr *CertRenewal) findStaple() error {
 // interesting.
 func (cr *CertRenewal) parseExistingStaple() error {
 	var err error
-	cr.oldStaple, err = ocsp.ParseResponse(cr.oldStapleRaw, cr.issuer)
+	cr.oldStaple, err = ocsp.ParseResponseForCert(cr.oldStapleRaw, cr.cert, cr.issuer)
 	return err
 }
 

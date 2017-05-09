@@ -123,7 +123,14 @@ func (cr *CertRenewal) tryIssuerInRest(rest []byte) *x509.Certificate {
 }
 
 // move this out to something which manages system pools, any CAs specified in
-// cmdline flags, etc
+// cmdline flags, etc.  Should probably have something which builds a map of CA
+// certs (and can be re-triggered based on a certs dir watch) so that can index
+// directly from issuer to cert.
+//
+// Two maps, one keyed by `X509v3 Subject Key Identifier` and for which the
+// entity cert's `X509v3 Authority Key Identifier` is used as the lookup key,
+// and a backup map of Subject DN, with entity cert's Issuer DN used as the
+// lookup key.
 func (cr *CertRenewal) findIssuer() *x509.Certificate {
 	cr.CertLogf("UNIMPLEMENTED findIssuer() path %q", cr.certPath)
 	return nil
@@ -157,6 +164,6 @@ func (cr *CertRenewal) fetchOCSPviaHTTP(ocspReq []byte) (*ocsp.Response, []byte,
 		return nil, raw, ErrHTTPFailure
 	}
 
-	r, e := ocsp.ParseResponse(raw, cr.issuer)
+	r, e := ocsp.ParseResponseForCert(raw, cr.cert, cr.issuer)
 	return r, raw, e
 }

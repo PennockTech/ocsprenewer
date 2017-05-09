@@ -46,3 +46,9 @@ Missing almost all tests.  I got something working, needs some TLC.
 
 Would be good to have a notify-watch on a directory to automatically pick up
 new certs to watch over.
+
+Need to select an appropriate issuer certificate when it's not bundled in the
+same file as the end-entity certificate.  My primary use-case is Let's Encrypt
+(with certs issued through <https://github.com/xenolf/lego>) so bundling is
+the norm for me.  If you need this issuer found and get the `UNIMPLEMENTED`
+complaint, file an issue with details.
