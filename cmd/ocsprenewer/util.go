@@ -5,7 +5,7 @@
 // This file is split out to keep `os` and such like away from main.go and
 // make it harder to do things like "exit without safety sleep".
 
-package main
+package main // import "go.pennock.tech/ocsprenewer/cmd/ocsprenewer"
 
 import (
 	"fmt"

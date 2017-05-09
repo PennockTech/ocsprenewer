@@ -2,7 +2,7 @@
 // All rights reserved, except as granted under license.
 // Licensed per file LICENSE.txt
 
-package main
+package main // import "go.pennock.tech/ocsprenewer/cmd/ocsprenewer"
 
 import (
 	"flag"

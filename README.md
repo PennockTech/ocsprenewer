@@ -36,7 +36,7 @@ written with that as a key usage model.
 ### Installation
 
 ```sh
-go get go.pennock.tech/ocsprenewer/cmd/ocsprenewer
+go get -v go.pennock.tech/ocsprenewer/cmd/ocsprenewer
 ```
 
 ### Issues

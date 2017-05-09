@@ -2,7 +2,7 @@
 // All rights reserved, except as granted under license.
 // Licensed per file LICENSE.txt
 
-package renew
+package renew // import "go.pennock.tech/ocsprenewer/renew"
 
 import (
 	"io/ioutil"
