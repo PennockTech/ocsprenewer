@@ -79,6 +79,7 @@ func main() {
 	}
 
 	if pflags.Persist {
+		renewer.Logf("%s: starting persistent run, version %s", ProjectName, Version)
 		// Should not return until exiting
 		ok := renewer.Start()
 		if ok {
@@ -86,6 +87,8 @@ func main() {
 		}
 		exit(1)
 	}
+
+	renewer.LogAtf(1, "%s: one-shot renewr run, version %s", ProjectName, Version)
 
 	if pflags.IfNeeded {
 		renewer.SetImmediate(false)

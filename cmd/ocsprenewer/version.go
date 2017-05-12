@@ -5,4 +5,4 @@
 package main // import "go.pennock.tech/ocsprenewer/cmd/ocsprenewer"
 
 var ProjectName = "OCSP Renewer"
-var Version = "0.1.1"
+var Version = "0.1.2"
