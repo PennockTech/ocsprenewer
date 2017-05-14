@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# PROVIDE: ocsprenewer
+# BEFORE: mail
+# BEFORE: exim
+# REQUIRE: DAEMON
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=ocsprenewer
+rcvar=ocsprenewer_enable
+
+command=/opt/spodhuis/sbin/ocsprenewer
+procname=daemon
+pidfile=/var/run/ocsprenewer.pid
+required_dirs=/var/cache/exim
+
+start_cmd=ocsprenewer_start_cmd
+
+load_rc_config $name
+: ${ocsprenewer_enable="NO"}
+: ${ocsprenewer_daemon_user="exim"}
+: ${ocsprenewer_logfile="/var/log/ocsprenewer"}
+: ${ocsprenewer_flags="-out-dir /var/cache/exim -cert-extensions .crt -extension .ocsp.der -now -allow-nonocsp-in-dir -dirs -persist /etc/x509/services/exim"}
+
+ocsprenewer_start_cmd()
+{
+	local _f
+	for _f in $required_dirs; do
+		test -d "${_f}/." && continue
+		warn "${_f} is not a directory"
+		return 1
+	done
+	echo "Starting $name."
+	touch -- "$ocsprenewer_logfile"
+	/usr/sbin/daemon >> "$ocsprenewer_logfile" 2>&1 -c -P "$pidfile" -r \
+		/usr/local/sbin/chpst -u "$ocsprenewer_daemon_user" $command ${ocsprenewer_flags}
+}
+
+run_rc_command "$1"

@@ -58,3 +58,41 @@ complaint, file an issue with details.
 
 Should have a periodic sweep of all files, to catch unexpected or
 dropped-by-bug things.
+
+### Invocation
+
+Invoke with `-help` to see flags.
+
+Use `-persist` to set up timers and retry as and when appropriate.  Signal
+handlers will also be setup, so that `SIGUSR1` will trigger an immediate full
+reload.  (Also `SIGHUP` but we reserve the right to make that do Other Things
+in the future).
+
+There's no self-daemon mode.  Instead, run it in the "foreground" under a
+keep-alive system, such as `supervise`, or a "modern" init system, or
+whatever.
+
+In the `contrib/` sub-directory, there's an `rc.d` script for FreeBSD which
+will need adjustment for your installation.  The path to the command, the
+place you choose to keep OCSP staples, and where the TLS certificates are
+stored are likely to need adjusting.  The script relies upon `chpst` from the
+`runit` package.
+
+The core lines are:
+```
+: ${ocsprenewer_flags="-out-dir /var/cache/exim -cert-extensions .crt -extension .ocsp.der -now -allow-nonocsp-in-dir -dirs -persist /etc/x509/services/exim"}
+
+/usr/sbin/daemon >> "$ocsprenewer_logfile" 2>&1 \
+  -c -P "$pidfile" -r \
+  /usr/local/sbin/chpst -u "$ocsprenewer_daemon_user" \
+  $command ${ocsprenewer_flags}`
+```
+
+The `-now` forces a scan on startup, despite `-persist`; we're working on
+"every cert in a directory" but accept that some certs are issued without OCSP
+information (a private CA) so skip those without erroring.
+
+We tell daemon to switch to the root directory (`-c`), to supervise and
+restart if needed (`-r`) and to write its _own_ pid to a pidfile (`-P` instead
+of `-p`) so that rc-system signals are sent to daemon, not ocsprenewer,
+allowing the service to be shut down.
