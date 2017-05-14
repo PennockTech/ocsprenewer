@@ -51,6 +51,11 @@ type Renewer struct {
 	// used in logging to have an id per action to disambiguate; manipulate with atomics
 	seqActionID uint64
 
+	// used to pass from signals that we want a sweep
+	forceSweepReqs chan sweepReq
+
+	// Everything after here protected by mutex
+
 	// Could probably do with a more efficient and scalable data structure if
 	// there are more than a dozen certs to be renewed, but a map which is
 	// walked to find appropriate times is acceptable for the currently
@@ -62,6 +67,9 @@ type Renewer struct {
 	renewMutex        sync.Mutex
 	nextRenew         map[string]time.Time
 	earliestNextRenew time.Time
+
+	forcedSweepAt time.Time
+	forcedFull    bool
 }
 
 func New(c Config) (*Renewer, error) {
@@ -72,6 +80,7 @@ func New(c Config) (*Renewer, error) {
 		permitFileUpdate:  true,
 		HTTPClient:        http.DefaultClient,
 		seqActionID:       seedActionID(),
+		forceSweepReqs:    make(chan sweepReq, 3),
 	}
 
 	if r.config.HTTPUserAgent == "" {

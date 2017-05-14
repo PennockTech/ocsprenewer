@@ -27,29 +27,24 @@ func (r *Renewer) Start() (status bool) {
 
 	r.config.Immediate = false
 
-	if len(r.nextRenew) < 1 {
-	ContingencyPlanB:
-		for {
-			d := retryJitter(SweepIntervalTimerless)
-			r.Logf("BAD: no scheduled renew checks found; sleeping %v", d)
-			time.Sleep(d)
-
-			err := r.OneShot()
-			if err != nil {
-				r.Logf("partial sweep errored: %s", err)
-			}
-			if len(r.nextRenew) >= 1 {
-				break ContingencyPlanB
-			}
-		}
-	}
-
 	previousLoopStartTime := time.Now()
 	for {
 		r.renewMutex.Lock()
 		firstRenewal := r.earliestNextRenew
 		r.renewMutex.Unlock()
 		now := time.Now()
+		emptyTimers := false
+
+		if firstRenewal.IsZero() {
+			emptyTimers = true
+			d := retryJitter(SweepIntervalTimerless)
+			if r.permitRemoteComms {
+				r.Logf("BAD: no scheduled renew checks found; will sleep for %v", d)
+			} else {
+				r.Logf("remote comms disabled, unable to get timers; assuming you're testing; will sleep for %v", d)
+			}
+			firstRenewal = now.Add(d)
+		}
 
 		if now.Sub(previousLoopStartTime) < time.Second {
 			// An extra sleep on the first pass is acceptable.
@@ -65,13 +60,30 @@ func (r *Renewer) Start() (status bool) {
 			// select{} block here, but for now keep it simple.
 			d := firstRenewal.Sub(now)
 			r.Logf("persist-sleep: next renewal at %s, sleeping %s", firstRenewal, d)
-			time.Sleep(d)
+			r.sleepUnlessInterrupted(d)
 		}
 
-		err := r.runTimerBasedChecks()
-		// Use a sentinel error to request exit?
-		if err != nil {
-			r.Logf("timer-based sweep errored: %s", err)
+		if t, full := r.forcedSweepCheck(); !t.IsZero() {
+			if full {
+				r.config.Immediate = true
+			}
+			err := r.OneShot()
+			if err != nil {
+				r.Logf("forced full sweep errored: %s", err)
+			}
+			r.config.Immediate = false
+			r.forcedSweepResetFor(t)
+		} else if emptyTimers {
+			err := r.OneShot()
+			if err != nil {
+				r.Logf("timerless fallback full sweep errored: %s", err)
+			}
+		} else {
+			err := r.runTimerBasedChecks()
+			// Use a sentinel error to request exit?
+			if err != nil {
+				r.Logf("timer-based sweep errored: %s", err)
+			}
 		}
 		continue
 	}

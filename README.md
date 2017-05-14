@@ -57,16 +57,19 @@ the norm for me.  If you need this issuer found and get the `UNIMPLEMENTED`
 complaint, file an issue with details.
 
 Should have a periodic sweep of all files, to catch unexpected or
-dropped-by-bug things.
+dropped-by-bug things.  (Can be done with SIGUSR2 now).
 
 ### Invocation
 
 Invoke with `-help` to see flags.
 
 Use `-persist` to set up timers and retry as and when appropriate.  Signal
-handlers will also be setup, so that `SIGUSR1` will trigger an immediate full
-reload.  (Also `SIGHUP` but we reserve the right to make that do Other Things
-in the future).
+handlers will also be setup, so that `SIGUSR1` will trigger an immediate
+check, per timers, and `SIGUSR2` will trigger a full check, ignoring timers,
+forcibly getting new staples.
+(`SIGHUP` is also accepted, as per SIGUSR1, but we reserve the right to make
+that do Other Things in the future, including full checks and anything else
+appropriate).
 
 There's no self-daemon mode.  Instead, run it in the "foreground" under a
 keep-alive system, such as `supervise`, or a "modern" init system, or
