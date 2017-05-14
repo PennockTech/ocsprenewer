@@ -13,8 +13,12 @@ import (
 )
 
 const (
-	HTTPUserAgent = "ocsprenewer/0.1 (Pennock Tech OCSP Renewer)"
+	defHTTPUserAgentProduct = "ocsprenewer"
+	defHTTPUserAgentComment = "(Pennock Tech OCSP Renewer)"
 )
+
+// Should be overridden with a version number
+const defHTTPUserAgent = defHTTPUserAgentProduct + " " + defHTTPUserAgentComment
 
 // We don't use "daemon" because we don't auto-fork into background, but
 // instead make ourselves easy to supervise.  If there are complaints that
@@ -59,7 +63,11 @@ func main() {
 	}
 
 	renewerConfig.InputPaths = flag.Args()
-	renewerConfig.HTTPUserAgent = HTTPUserAgent
+	renewerConfig.HTTPUserAgent = defHTTPUserAgent
+
+	if Version != "" {
+		renewerConfig.HTTPUserAgent = defHTTPUserAgentProduct + "/" + httpVersion(Version) + " " + defHTTPUserAgentComment
+	}
 
 	renewer, err := renew.New(renewerConfig)
 	if err != nil {
