@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+const (
+	minSpinningLoopBackoff      = time.Second
+	maxSpinningLoopBackoff      = 5 * time.Minute
+	georatioSpinningLoopBackoff = 2.0
+)
+
 // Start creates a persisting process which keeps renewing all OCSP staples forever.
 // It exits with a bool which indicates whether exit was expected or not.
 // The HTTP interface might in future provide a means to request a clean expected exit.
@@ -28,6 +34,7 @@ func (r *Renewer) Start() (status bool) {
 	r.config.Immediate = false
 
 	previousLoopStartTime := time.Now()
+	var spinningLoopBackoff time.Duration
 	for {
 		r.renewMutex.Lock()
 		firstRenewal := r.earliestNextRenew
@@ -46,11 +53,19 @@ func (r *Renewer) Start() (status bool) {
 			firstRenewal = now.Add(d)
 		}
 
-		if now.Sub(previousLoopStartTime) < time.Second {
-			// An extra sleep on the first pass is acceptable.
-			// Mostly avoiding busy loops in the event something goes badly wrong.
-			time.Sleep(time.Second)
+		// Left as zero for first pass to prevent sleeping and logging on startup
+		if spinningLoopBackoff == 0 {
+			spinningLoopBackoff = minSpinningLoopBackoff
+		} else if now.Sub(previousLoopStartTime) < spinningLoopBackoff {
+			r.Logf("CPU-protection: sleeping for %v", spinningLoopBackoff)
+			time.Sleep(spinningLoopBackoff)
 			now = time.Now()
+			spinningLoopBackoff *= georatioSpinningLoopBackoff
+			if spinningLoopBackoff > maxSpinningLoopBackoff {
+				spinningLoopBackoff = maxSpinningLoopBackoff
+			}
+		} else {
+			spinningLoopBackoff = minSpinningLoopBackoff
 		}
 		previousLoopStartTime = now
 
