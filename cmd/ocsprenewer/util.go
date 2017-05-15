@@ -8,8 +8,11 @@
 package main // import "go.pennock.tech/ocsprenewer/cmd/ocsprenewer"
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -19,6 +22,20 @@ func exit(val int) {
 		time.Sleep(time.Second)
 	}
 	os.Exit(val)
+}
+
+func argvQuoted() string {
+	b := &bytes.Buffer{}
+	r := regexp.MustCompile(`^[A-Za-z0-9./_-]+$`)
+	for _, arg := range os.Args {
+		if r.MatchString(arg) {
+			b.WriteString(arg)
+		} else {
+			b.WriteString(strconv.Quote(arg))
+		}
+		b.WriteRune(' ')
+	}
+	return b.String()
 }
 
 func stderr(spec string, args ...interface{}) {

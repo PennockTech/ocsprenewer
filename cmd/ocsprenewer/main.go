@@ -88,6 +88,7 @@ func main() {
 
 	if pflags.Persist {
 		renewer.Logf("%s: starting persistent run, version %s", ProjectName, Version)
+		renewer.Logf("argv: %s", argvQuoted())
 		setupSignals(renewer)
 		// Should not return until exiting
 		ok := renewer.Start()
