@@ -5,7 +5,7 @@
 package main // import "go.pennock.tech/ocsprenewer/cmd/ocsprenewer"
 
 var ProjectName = "OCSP Renewer"
-var Version = "0.1.4"
+var Version = "0.1.5"
 
 // We expect Version to be overridable at the linker, perhaps with git
 // information, so it might be more than just a tuple of digits joined with
