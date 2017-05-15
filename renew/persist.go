@@ -121,10 +121,8 @@ func (r *Renewer) runTimerBasedChecks() error {
 	r.LogAtf(2, "ordered check list: %#v", timePaths)
 
 	now := time.Now()
-	foundEnd := false
 	for i := range timePaths {
 		if timePaths[i].T.After(now) {
-			foundEnd = true
 			r.renewMutex.Lock()
 			r.earliestNextRenew = timePaths[i].T
 			r.renewMutex.Unlock()
@@ -137,17 +135,21 @@ func (r *Renewer) runTimerBasedChecks() error {
 		paths[i] = timePaths[i].P
 	}
 
-	err := r.oneShotOverPaths(paths)
+	err := r.sweepOverPaths(paths, r.oneFilename)
 
-	if !foundEnd {
-		timePaths := r.getTimePaths()
-		sort.Slice(timePaths, func(i, j int) bool { return timePaths[i].T.Before(timePaths[j].T) })
-		r.renewMutex.Lock()
-		if timePaths[0].T.Before(r.earliestNextRenew) {
-			r.earliestNextRenew = timePaths[0].T
-		}
-		r.renewMutex.Unlock()
+	// We don't know if the sweep will have registered new checks before the
+	// earliest of any remaining checks, since OCSP leases can be for varying
+	// durations.  So we _always_ look at all now-current timepaths to
+	// determine the earliest, regardless of whether or not we just looked at
+	// all of them.
+
+	timePaths = r.getTimePaths()
+	sort.Slice(timePaths, func(i, j int) bool { return timePaths[i].T.Before(timePaths[j].T) })
+	r.renewMutex.Lock()
+	if timePaths[0].T.Before(r.earliestNextRenew) {
+		r.earliestNextRenew = timePaths[0].T
 	}
+	r.renewMutex.Unlock()
 
 	return err
 }
