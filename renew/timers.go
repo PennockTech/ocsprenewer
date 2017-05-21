@@ -152,7 +152,8 @@ func (r *Renewer) RegisterFutureCheck(path string, checkTime time.Time) {
 	r.renewMutex.Lock()
 	defer r.renewMutex.Unlock()
 	existing, ok := r.nextRenew[path]
-	if ok && checkTime.After(existing) {
+	now := time.Now()
+	if ok && checkTime.After(existing) && now.Before(existing) {
 		r.Logf("RegisterFutureCheck(%q): ignoring time extension to %s, keeping %s", path, checkTime, existing)
 		return
 	}
