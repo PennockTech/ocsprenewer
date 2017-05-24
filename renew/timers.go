@@ -132,14 +132,17 @@ func (cr *CertRenewal) setRetryTimersFromStaple(staple *ocsp.Response) {
 	}
 	if now.After(expire) {
 		atOffset(RetryOnAlreadyExpired)
+		return
 	}
 	if base.IsZero() {
 		atOffset(RetryMissingTimers)
+		return
 	}
 
 	retryAfter := base.Add(retryJitter(time.Duration(float64(expire.Sub(base)) * t1ratio)))
 	if now.After(retryAfter) {
 		atOffset(RetryAfterT1)
+		return
 	}
 
 	cr.RegisterFutureCheck(cr.certPath, retryAfter)

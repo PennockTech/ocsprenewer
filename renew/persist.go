@@ -41,6 +41,7 @@ func (r *Renewer) Start() (status bool) {
 		r.renewMutex.Unlock()
 		now := time.Now()
 		emptyTimers := false
+		safetyPause := false
 
 		if firstRenewal.IsZero() {
 			emptyTimers = true
@@ -77,6 +78,11 @@ func (r *Renewer) Start() (status bool) {
 			r.Logf("persist-sleep: next renewal at %s, sleeping %s", firstRenewal, d)
 			r.sleepUnlessInterrupted(d)
 		}
+	SAFETY_RESTART:
+		if safetyPause {
+			// explained below, just before the Evil Goto
+			r.sleepUnlessInterrupted(2 * minSpinningLoopBackoff)
+		}
 
 		if t, full := r.forcedSweepCheck(); !t.IsZero() {
 			if full {
@@ -93,11 +99,30 @@ func (r *Renewer) Start() (status bool) {
 			if err != nil {
 				r.Logf("timerless fallback full sweep errored: %s", err)
 			}
+		} else if safetyPause {
+			safetyPause = false
 		} else {
 			err := r.runTimerBasedChecks()
 			// Use a sentinel error to request exit?
 			if err != nil {
 				r.Logf("timer-based sweep errored: %s", err)
+			} else {
+				// We think everything is fine, after a time-based run, so we
+				// have a choice about the CPU-protection sleep: let it log
+				// normally, or avoid logging for a "normal" case, while still
+				// backing off a little.  I think the best thing to do is to
+				// sleep for twice the minimum, so that when things are
+				// well-behaved, we don't sleep again, but if things had spun a
+				// bit to ramp the backoff up past this, we'll still sleep
+				// again and get protection.
+				// None of this is ideal or exact; it's heuristic to protect
+				// against bugs in our own logic but avoid noise.
+				// We also want to handle signals, even in this pause, so we
+				// need all of this post-sleep logic to apply again.
+				r.Logf("pausing and cleaning up")
+				safetyPause = true
+				cleanUpState()
+				goto SAFETY_RESTART
 			}
 		}
 		continue
