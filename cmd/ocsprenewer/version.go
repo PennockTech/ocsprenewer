@@ -4,8 +4,17 @@
 
 package main // import "go.pennock.tech/ocsprenewer/cmd/ocsprenewer"
 
+import (
+	"runtime"
+)
+
 var ProjectName = "OCSP Renewer"
 var Version = "0.1.7"
+
+func showVersion() {
+	stdout("%s version %s\n", ProjectName, Version)
+	stdout("%s: Golang: Runtime: %s\n", ProjectName, runtime.Version())
+}
 
 // We expect Version to be overridable at the linker, perhaps with git
 // information, so it might be more than just a tuple of digits joined with

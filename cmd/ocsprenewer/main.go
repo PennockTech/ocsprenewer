@@ -58,7 +58,7 @@ func main() {
 	flag.Parse()
 
 	if pflags.Version {
-		stdout("%s version %s\n", ProjectName, Version)
+		showVersion()
 		exit(0)
 	}
 
