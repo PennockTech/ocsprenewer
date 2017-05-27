@@ -127,8 +127,6 @@ func (r *Renewer) Start() (status bool) {
 		}
 		continue
 	}
-
-	return false
 }
 
 type timePath struct {
