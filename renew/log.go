@@ -36,7 +36,7 @@ func (r *Renewer) LogAtf(level uint, spec string, args ...interface{}) {
 func (cr *CertRenewal) CertLogf(spec string, args ...interface{}) {
 	t := make([]interface{}, 3, len(args)+3)
 	if cr.actionIDStr == "" {
-		cr.actionIDStr = strconv.FormatUint(cr.ActionID, 10)
+		cr.actionIDStr = strconv.FormatUint(uint64(cr.ActionID), 10)
 	}
 	t[0] = thisPid
 	t[1] = cr.actionIDStr

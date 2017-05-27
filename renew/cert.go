@@ -24,7 +24,7 @@ var (
 type CertRenewal struct {
 	*Renewer
 
-	ActionID    uint64
+	ActionID    uint32
 	actionIDStr string
 
 	certPath   string

@@ -49,7 +49,7 @@ type Renewer struct {
 	needTimers bool
 
 	// used in logging to have an id per action to disambiguate; manipulate with atomics
-	seqActionID uint64
+	seqActionID uint32
 
 	// used to pass from signals that we want a sweep
 	forceSweepReqs chan sweepReq
