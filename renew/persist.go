@@ -150,6 +150,7 @@ func (r *Renewer) runTimerBasedChecks() error {
 			r.earliestNextRenew = timePaths[i].T
 			r.renewMutex.Unlock()
 			timePaths = timePaths[:i]
+			break
 		}
 	}
 
