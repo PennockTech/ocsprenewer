@@ -98,7 +98,7 @@ func main() {
 		exit(1)
 	}
 
-	renewer.LogAtf(1, "%s: one-shot renewr run, version %s", ProjectName, Version)
+	renewer.LogAtf(1, "%s: one-shot renewer run, version %s", ProjectName, Version)
 
 	if pflags.IfNeeded {
 		renewer.SetImmediate(false)
