@@ -39,6 +39,9 @@ written with that as a key usage model.
 go get -v go.pennock.tech/ocsprenewer/cmd/ocsprenewer
 ```
 
+There's also a script `.compile` which will embed more information about
+repository versions into the binary.  Use is optional.
+
 ### Issues
 
 Probably lots.

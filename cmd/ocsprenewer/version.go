@@ -6,14 +6,33 @@ package main // import "go.pennock.tech/ocsprenewer/cmd/ocsprenewer"
 
 import (
 	"runtime"
+	"strings"
 )
 
 var ProjectName = "OCSP Renewer"
 var Version = "0.1.9"
+var RepoVersionString = ""
 
 func showVersion() {
 	stdout("%s version %s\n", ProjectName, Version)
 	stdout("%s: Golang: Runtime: %s\n", ProjectName, runtime.Version())
+
+	if RepoVersionString != "" {
+		// Linker cmdline hack: use Unit Separator US (0x1F) within Record Separator terminated records (RS, 0x1E)
+		// And whitespace replaced with Substitute (0x1A)
+		for _, l := range strings.Split(RepoVersionString, "\x1E") {
+			if l != "" {
+				l = strings.Replace(l, "\x1A", " ", -1)
+				units := strings.SplitN(l, "\x1F", 2)
+				if len(units) == 1 {
+					units = append(units, "<unknown>")
+				}
+				stdout("%s: repo %q: %q\n", ProjectName, units[0], units[1])
+			}
+		}
+	} else {
+		stdout("%s: no repo version details available\n", ProjectName)
+	}
 }
 
 // We expect Version to be overridable at the linker, perhaps with git
