@@ -6,32 +6,66 @@ package main // import "go.pennock.tech/ocsprenewer/cmd/ocsprenewer"
 
 import (
 	"runtime"
-	"strings"
+	"runtime/debug"
 )
 
 var ProjectName = "OCSP Renewer"
 var Version = "0.1.9"
-var RepoVersionString = ""
 
 func showVersion() {
 	stdout("%s version %s\n", ProjectName, Version)
 	stdout("%s: Golang: Runtime: %s\n", ProjectName, runtime.Version())
 
-	if RepoVersionString != "" {
-		// Linker cmdline hack: use Unit Separator US (0x1F) within Record Separator terminated records (RS, 0x1E)
-		// And whitespace replaced with Substitute (0x1A)
-		for _, l := range strings.Split(RepoVersionString, "\x1E") {
-			if l != "" {
-				l = strings.Replace(l, "\x1A", " ", -1)
-				units := strings.SplitN(l, "\x1F", 2)
-				if len(units) == 1 {
-					units = append(units, "<unknown>")
-				}
-				stdout("%s: repo %q: %q\n", ProjectName, units[0], units[1])
-			}
-		}
-	} else {
+	buildInfo, ok := debug.ReadBuildInfo()
+	if !ok {
 		stdout("%s: no repo version details available\n", ProjectName)
+		return
+	}
+
+	type versionLine struct {
+		path, version, sum string
+		replaced           bool
+	}
+	lines := make([]versionLine, 0, 10)
+	addVersion := func(p, v, sum string, replaced bool) {
+		lines = append(lines, versionLine{p, v, sum, replaced})
+	}
+
+	m := &buildInfo.Main
+	topVersion := m.Version
+	if Version != "" {
+		topVersion = Version
+	}
+	addVersion(m.Path, topVersion, m.Sum, m.Replace != nil)
+	for m.Replace != nil {
+		m = m.Replace
+		addVersion(m.Path, m.Version, m.Sum, m.Replace != nil)
+	}
+
+	for _, m := range buildInfo.Deps {
+		addVersion(m.Path, m.Version, m.Sum, m.Replace != nil)
+		for m.Replace != nil {
+			m = m.Replace
+			addVersion(m.Path, m.Version, m.Sum, m.Replace != nil)
+		}
+	}
+
+	headers := []string{"Path", "Version", "Checksum", "Replaced"}
+	maxP, maxV, maxS := len(headers[0]), len(headers[1]), len(headers[2])
+	for _, l := range lines {
+		if len(l.path) > maxP {
+			maxP = len(l.path)
+		}
+		if len(l.version) > maxV {
+			maxV = len(l.version)
+		}
+		if len(l.sum) > maxS {
+			maxS = len(l.sum)
+		}
+	}
+	stdout("%-*s %-*s %-*s %s\n", maxP, headers[0], maxV, headers[1], maxS, headers[2], headers[3])
+	for _, l := range lines {
+		stdout("%-*s %-*s %-*s %v\n", maxP, l.path, maxV, l.version, maxS, l.sum, l.replaced)
 	}
 }
 

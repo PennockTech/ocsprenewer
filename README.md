@@ -1,7 +1,7 @@
 oscprenewer
 ===========
 
-*WARNING: this is an early-alpha project with a paucity of tests*
+*WARNING: this is an beta project with a paucity of tests*
 
 The <abbr title='Online Certificate Status Protocol'>OCSP</abbr> Renewer
 renews OCSP Staples on local disk.
@@ -39,8 +39,10 @@ written with that as a key usage model.
 go get -v go.pennock.tech/ocsprenewer/cmd/ocsprenewer
 ```
 
-There's also a script `.compile` which will embed more information about
-repository versions into the binary.  Use is optional.
+The script `.compile` will embed this repository's git version information
+into the binary, and can be invoked as `./.compile static` to get a static
+binary.
+
 
 ### Issues
 
