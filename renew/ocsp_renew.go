@@ -166,7 +166,7 @@ func (cr *CertRenewal) fetchOCSPviaHTTP(ocspReq []byte) (*ocsp.Response, []byte,
 	}
 	if resp.StatusCode != http.StatusOK {
 		cr.Logf("HTTP %s response from %q", resp.Status, cr.cert.OCSPServer[0])
-		return nil, raw, ErrHTTPFailure
+		return nil, nil, ErrHTTPFailure
 	}
 
 	r, e := ocsp.ParseResponseForCert(raw, cr.cert, cr.issuer)
