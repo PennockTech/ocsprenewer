@@ -34,7 +34,7 @@ ocsprenewer_start_cmd()
 	done
 	echo "Starting $name."
 	touch -- "$ocsprenewer_logfile"
-	/usr/sbin/daemon >> "$ocsprenewer_logfile" 2>&1 -c -P "$pidfile" -r \
+	/usr/sbin/daemon -o "$ocsprenewer_logfile" -c -P "$pidfile" -r \
 		/usr/local/sbin/chpst -u "$ocsprenewer_daemon_user" $command ${ocsprenewer_flags}
 }
 
