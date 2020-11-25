@@ -171,6 +171,6 @@ func (r *Renewer) RegisterFutureCheck(path string, checkTime time.Time) {
 func retryJitter(base time.Duration) time.Duration {
 	b := float64(base)
 	// 10% +/-
-	offset := rand.Float64()*0.2 - 0.1
-	return time.Duration(b + offset)
+	offsetFactor := rand.Float64()*0.2 - 0.1
+	return time.Duration(b + offsetFactor*b)
 }
