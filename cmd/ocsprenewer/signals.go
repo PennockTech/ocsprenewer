@@ -14,8 +14,10 @@ import (
 )
 
 func setupSignals(r *renew.Renewer) {
-	chNormal := make(chan os.Signal)
-	chFull := make(chan os.Signal)
+	// NB: package Signal DOES NOT BLOCK writing to the channel, so it MUST be buffered.
+	// [caught by staticcheck]
+	chNormal := make(chan os.Signal, 1)
+	chFull := make(chan os.Signal, 1)
 
 	handlerFunc := func(c <-chan os.Signal, full bool) {
 		for {

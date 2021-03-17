@@ -134,7 +134,13 @@ func (r *Renewer) oneFilenameSuccess(p string) bool {
 }
 
 func (r *Renewer) oneFilename(p string) error {
-	fi, err := os.Stat(p + NoOCSPExtension)
+	var (
+		fi  os.FileInfo
+		err error
+	)
+
+	// If foo.noocsp exists then we ignore foo
+	_, err = os.Stat(p + NoOCSPExtension)
 	if err == nil {
 		return ErrNoOCSPFlagfile
 	}
