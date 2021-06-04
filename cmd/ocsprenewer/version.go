@@ -10,7 +10,7 @@ import (
 )
 
 var ProjectName = "OCSP Renewer"
-var Version = "0.2.2"
+var Version = "0.2.3"
 
 func showVersion() {
 	stdout("%s version %s\n", ProjectName, Version)
