@@ -49,12 +49,13 @@ func (r *Renewer) forcedSweepCheck() (time.Time, bool) {
 // that to reset, so we shouldn't lose requests.
 // If some requests are for Full and some aren't, then coalesce into full-needed.
 // LIMITATION:
-//   We only reset the Full flag if we successfully clear any pending reset.
-//   If one or more non-full requests come in when we're in the middle of
-//   dealing with a full, then we'll do full checks for the next invocation
-//   too, and so on, until we clear any pending check.
-//   This should be fairly innocuous and I don't think handling it is worth more
-//   complexity.
+//
+//	We only reset the Full flag if we successfully clear any pending reset.
+//	If one or more non-full requests come in when we're in the middle of
+//	dealing with a full, then we'll do full checks for the next invocation
+//	too, and so on, until we clear any pending check.
+//	This should be fairly innocuous and I don't think handling it is worth more
+//	complexity.
 func (r *Renewer) forceAddCheck(s sweepReq) {
 	r.renewMutex.Lock()
 	defer r.renewMutex.Unlock()

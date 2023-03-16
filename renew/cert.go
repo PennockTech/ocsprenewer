@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -76,7 +75,7 @@ func (cr *CertRenewal) findStaple() error {
 	// If you need proofs stored in PEM, submit a Pull Request (or open an Issue).
 
 	var err error
-	cr.oldStapleRaw, err = ioutil.ReadFile(cr.staplePath)
+	cr.oldStapleRaw, err = os.ReadFile(cr.staplePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			cr.CertLogAtf(1, "no existing staple at %q", cr.staplePath)
@@ -108,7 +107,7 @@ func (cr *CertRenewal) writeStaple(staple *ocsp.Response, rawStaple []byte) erro
 		return nil
 	}
 
-	fh, err := ioutil.TempFile(filepath.Dir(cr.staplePath), "newstaple")
+	fh, err := os.CreateTemp(filepath.Dir(cr.staplePath), "newstaple")
 	if err != nil {
 		return err
 	}

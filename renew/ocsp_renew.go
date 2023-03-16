@@ -9,7 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -143,7 +143,8 @@ func (cr *CertRenewal) findIssuer() *x509.Certificate {
 
 // fetchOCSPviaHTTP fetches the OCSP response.
 // TODO: should we iterate over OCSP URLs?  Does anything actually need that?
-//       if so, also consider construction of UnknownAtCAError object elsewhere
+//
+//	if so, also consider construction of UnknownAtCAError object elsewhere
 func (cr *CertRenewal) fetchOCSPviaHTTP(ocspReq []byte) (*ocsp.Response, []byte, error) {
 	req, err := http.NewRequest(
 		http.MethodPost,
@@ -160,7 +161,7 @@ func (cr *CertRenewal) fetchOCSPviaHTTP(ocspReq []byte) (*ocsp.Response, []byte,
 	if err != nil {
 		return nil, nil, err
 	}
-	raw, err := ioutil.ReadAll(resp.Body)
+	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, nil, err
 	}

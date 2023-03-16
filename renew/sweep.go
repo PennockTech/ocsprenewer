@@ -9,7 +9,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -155,7 +154,7 @@ func (r *Renewer) oneFilename(p string) error {
 		return ErrCertFileTooLarge
 	}
 
-	data, err := ioutil.ReadFile(cr.certPath)
+	data, err := os.ReadFile(cr.certPath)
 	if err != nil {
 		return err
 	}

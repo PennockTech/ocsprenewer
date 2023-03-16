@@ -5,7 +5,6 @@
 package renew // import "go.pennock.tech/ocsprenewer/renew"
 
 import (
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"time"
@@ -34,7 +33,7 @@ const (
 )
 
 func (cr *CertRenewal) timerMatch() bool {
-	raw, err := ioutil.ReadFile(cr.staplePath)
+	raw, err := os.ReadFile(cr.staplePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			cr.CertLogf("no staple found reduces timer-match to 'yes'")

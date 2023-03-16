@@ -5,14 +5,13 @@
 package renew // import "go.pennock.tech/ocsprenewer/renew"
 
 import (
-	"io/ioutil"
 	"os"
 )
 
 // BasicChecks does whatever checks the renewer library considers worthwhile
 // sanity checks to try before starting any persistent run.
 func (r *Renewer) BasicChecks() error {
-	fh, err := ioutil.TempFile(r.config.OutputDir, "startup-check")
+	fh, err := os.CreateTemp(r.config.OutputDir, "startup-check")
 	if err != nil {
 		return err
 	}
