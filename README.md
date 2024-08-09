@@ -1,6 +1,27 @@
 oscprenewer
 ===========
 
+> [!CAUTION]
+> Let's Encrypt is dropping support for OCSP Stapling:
+> <https://letsencrypt.org/2024/07/23/replacing-ocsp-with-crls>
+>
+> With the CA/Browser Forum making OCSP services optional, you should expect
+> OCSP availability to decline.  If your deployed services use OCSP Stapling
+> at present, then ensure you either are using a CA which will continue to
+> support OCSP, or create a transition plan to safely migrate away from OCSP
+> Stapling.
+>
+> Migrating away from stapling will require, in order:
+>  1. Ensuring clients do not require OCSP Staples
+>  2. Renewing certs without Must Staple, such that clients seeing the cert
+>     won't demand a staple
+>  3. Only once nothing is demanding a staple, turning off the server-side
+>     logic to fetch/maintain OCSP Staples.
+
+> [!WARNING]
+> With OCSP Stapling support dying, this project is EOL.  It will probably be
+> Archived at some point "soon".
+
 *WARNING: this is an beta project with a paucity of tests*
 
 The <abbr title='Online Certificate Status Protocol'>OCSP</abbr> Renewer
