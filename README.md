@@ -19,8 +19,11 @@ oscprenewer
 >     logic to fetch/maintain OCSP Staples.
 
 > [!WARNING]
-> With OCSP Stapling support dying, this project is EOL.  It will probably be
-> Archived at some point "soon".
+> With OCSP Stapling support dying in the CAs we use, this project is EOL.
+> It will probably be Archived at some point "soon".
+> The MIT License should allow those who will continue using OCSP for in-house
+> services to fork and maintain for their own use, but Pennock Tech has no
+> current plans to continue using OCSP and has no clients paying us to care.
 
 *WARNING: this is an beta project with a paucity of tests*
 
