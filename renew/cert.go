@@ -61,7 +61,7 @@ func (cr *CertRenewal) certLabel() string {
 
 func (cr *CertRenewal) findStaple() error {
 	fn := filepath.Base(cr.certPath)
-	for _, e := range strings.Fields(cr.Renewer.config.CertExtensions) {
+	for e := range strings.FieldsSeq(cr.Renewer.config.CertExtensions) {
 		fn = strings.TrimSuffix(fn, e)
 	}
 	if len(fn) == 0 {

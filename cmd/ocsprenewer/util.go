@@ -38,10 +38,10 @@ func argvQuoted() string {
 	return b.String()
 }
 
-func stderr(spec string, args ...interface{}) {
+func stderr(spec string, args ...any) {
 	fmt.Fprintf(os.Stderr, spec, args...)
 }
 
-func stdout(spec string, args ...interface{}) {
+func stdout(spec string, args ...any) {
 	fmt.Fprintf(os.Stdout, spec, args...)
 }

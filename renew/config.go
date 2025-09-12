@@ -106,7 +106,7 @@ func New(c Config) (*Renewer, error) {
 		return nil, fmt.Errorf("output directory %q does not exist or is not a directory", r.config.OutputDir)
 	}
 
-	for _, e := range strings.Fields(r.config.CertExtensions) {
+	for e := range strings.FieldsSeq(r.config.CertExtensions) {
 		r.certGlobs = append(r.certGlobs, "*"+e)
 	}
 	if r.certGlobs == nil {

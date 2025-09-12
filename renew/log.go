@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func (r *Renewer) rawLogf(spec string, args ...interface{}) {
+func (r *Renewer) rawLogf(spec string, args ...any) {
 	log.Printf(spec, args...)
 }
 
@@ -20,21 +20,21 @@ func init() {
 	thisPid = strconv.Itoa(os.Getpid())
 }
 
-func (r *Renewer) Logf(spec string, args ...interface{}) {
-	t := make([]interface{}, 1, len(args)+1)
+func (r *Renewer) Logf(spec string, args ...any) {
+	t := make([]any, 1, len(args)+1)
 	t[0] = thisPid
 	t = append(t, args...)
 	r.rawLogf("[pid=%s] "+spec, t...)
 }
 
-func (r *Renewer) LogAtf(level uint, spec string, args ...interface{}) {
+func (r *Renewer) LogAtf(level uint, spec string, args ...any) {
 	if r.logLevel >= level {
 		r.Logf(spec, args...)
 	}
 }
 
-func (cr *CertRenewal) CertLogf(spec string, args ...interface{}) {
-	t := make([]interface{}, 3, len(args)+3)
+func (cr *CertRenewal) CertLogf(spec string, args ...any) {
+	t := make([]any, 3, len(args)+3)
 	if cr.actionIDStr == "" {
 		cr.actionIDStr = strconv.FormatUint(uint64(cr.ActionID), 10)
 	}
@@ -45,7 +45,7 @@ func (cr *CertRenewal) CertLogf(spec string, args ...interface{}) {
 	cr.rawLogf("[pid=%s] [actId=%s] [cert=%q] "+spec, t...)
 }
 
-func (cr *CertRenewal) CertLogAtf(level uint, spec string, args ...interface{}) {
+func (cr *CertRenewal) CertLogAtf(level uint, spec string, args ...any) {
 	if cr.Renewer.logLevel >= level {
 		cr.CertLogf(spec, args...)
 	}
